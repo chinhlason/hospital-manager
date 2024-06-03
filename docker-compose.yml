@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  scylladb:
+    container_name: datn-scylladb
+    image: scylladb/scylla
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'SHOW VERSION' || exit 1"]
+      interval: 5s
+      retries: 10
+      start_period: 20s
+      timeout: 30s
+    ports:
+      - 9042:9042
+    volumes:
+      - scylladata:/var/lib/scylla
+    networks:
+      - datn-microservice
+
+  postgresdb:
+    container_name: datn-postgres
+    build:
+      context: ./postgres/
+      dockerfile: Dockerfile
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready", "-d", "demo" ]
+      interval: 5s
+      retries: 5
+      start_period: 5s
+      timeout: 60s
+    environment:
+      POSTGRES_USER: sonnvt
+      POSTGRES_PASSWORD: sonnvt
+      POSTGRES_DB: demo
+    ports:
+      - 5432:5432
+    networks:
+      - datn-microservice
+    volumes:
+      - postgresdata:/var/lib/postgresql/data
+
+  redisdb:
+    container_name: datn-redis
+    image: "redis:alpine"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - 6379:6379
+    volumes:
+      - "redisdata:/data"
+    networks:
+      - datn-microservice
+
+  kafka:
+    container_name: datn-kafka
+    image: docker.io/bitnami/kafka:3.7
+    ports:
+      - "9092:9092"
+    volumes:
+      - "kafka_data:/bitnami"
+    environment:
+      # Kafka settings
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      # Listeners
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+
+  authservice:
+    container_name: auth-service
+    build:
+      context: ./authsvc/
+      dockerfile: Dockerfile
+    environment:
+      listen: ":8880"
+      dbURL: "scylladb:9042"
+      redisHost: "redisdb:6379"
+    depends_on:
+      scylladb:
+        condition: service_healthy
+      redisdb:
+        condition: service_healthy
+    ports:
+      - 8880:8880
+    networks:
+      - datn-microservice
+
+  roomservice:
+    container_name: room-service
+    build:
+      context: ./roomsvc/
+      dockerfile: Dockerfile
+    environment:
+      listen: ":8881"
+      userAddr: "authservice:8880"
+      dbURL: "postgresql://sonnvt:sonnvt@datn-postgres:5432/demo?sslmode=disable"
+    depends_on:
+      postgresdb:
+        condition: service_healthy
+    ports:
+      - 8881:8881
+    networks:
+      - datn-microservice
+
+networks:
+  datn-microservice:
+    driver: bridge
+
+volumes:
+  redisdata:
+  postgresdata:
+  scylladata:
+  kafka_data:
+    driver: local

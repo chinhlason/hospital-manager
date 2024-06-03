@@ -1,0 +1,89 @@
+[
+  {
+    "id": "login-request",
+    "upstream": {
+      "url": "http://host.docker.internal:8880"
+    },
+    "match": {
+      "url": "http://<127.0.0.1|localhost>:4455/login",
+      "methods": ["POST"]
+    },
+    "authenticators": [{"handler": "anonymous"}],
+    "authorizer": {"handler": "allow"},
+    "mutators": [{"handler": "noop"}]
+  },
+  {
+    "id": "register-request",
+    "upstream": {
+      "url": "http://host.docker.internal:8880"
+    },
+    "match": {
+      "url": "http://<127.0.0.1|localhost>:4455/register",
+      "methods": ["POST"]
+    },
+    "authenticators": [{"handler": "anonymous"}],
+    "authorizer": {"handler": "allow"},
+    "mutators": [{"handler": "noop"}]
+  },
+  {
+  "id": "refresh-token-request",
+  "upstream": {
+    "url": "http://host.docker.internal:8880"
+  },
+  "match": {
+    "url": "http://<127.0.0.1|localhost>:4455/refresh-token",
+    "methods": ["POST"]
+  },
+    "authenticators": [{"handler": "bearer_token"}],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [{"handler": "header"}]
+},
+  {
+    "id": "get-profile-request",
+    "upstream": {
+      "url": "http://host.docker.internal:8880"
+    },
+    "match": {
+      "url": "http://<127.0.0.1|localhost>:4455/profile",
+      "methods": ["GET"]
+    },
+    "authenticators": [{"handler": "bearer_token"}],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [{"handler": "header"}]
+  },
+  {
+    "id": "create-room",
+    "upstream": {
+      "url": "http://host.docker.internal:8881"
+    },
+    "match": {
+      "url": "http://<127.0.0.1|localhost>:4455/room/create",
+      "methods": ["POST"]
+    },
+    "authenticators": [{"handler": "bearer_token"}],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [{"handler": "header"}]
+  },
+  {
+    "id": "create-list",
+    "upstream": {
+      "url": "http://host.docker.internal:8881"
+    },
+    "match": {
+      "url": "http://<127.0.0.1|localhost>:4455/room/insert-list",
+      "methods": ["POST"]
+    },
+    "authenticators": [{"handler": "bearer_token"}],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [{"handler": "header"}]
+  }
+
+]

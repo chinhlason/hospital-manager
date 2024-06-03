@@ -1,0 +1,54 @@
+serve:
+  proxy:
+    port: 4455 # run the proxy at port 4455
+  api:
+    port: 4456 # run the api at port 4456
+
+access_rules:
+  repositories:
+    - file://rules.json
+
+mutators:
+  header:
+    enabled: true
+    config:
+      headers:
+        X-UserId: "{{ print .Subject }}"
+        X-Username: "{{ print .Extra.username }}"
+        X-Role: "{{ print .Extra.role }}"
+  noop:
+    enabled: true
+
+authorizers:
+  allow:
+    enabled: true
+#  remote:
+#    enabled: true
+#    config:
+#      remote: http://host.docker.internal:8081/validate-role
+#      headers:
+#        X-UserId: "{{ print .Subject }}"
+#        X-Username: "{{ print .Extra.username }}"
+#        X-Email: "{{ print .Extra.email }}"
+#        X-Role: "{{ print .Extra.role }}"
+
+authenticators:
+  noop:
+    enabled: true
+  anonymous:
+    enabled: true
+    config:
+      subject: guestName
+  cookie_session:
+    enabled: true
+    config:
+      check_session_url: http://host.docker.internal:8880/validate-token
+      preserve_path: true
+      preserve_query: true
+      force_method: GET, POST
+  bearer_token:
+    enabled: true
+    config:
+      check_session_url: http://host.docker.internal:8880/validate-token
+      preserve_path: true
+      preserve_query: true
